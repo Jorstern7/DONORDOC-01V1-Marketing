@@ -99,6 +99,26 @@ function clearDetails(details, bar) {
   details.style.overflowY = "";
 }
 
+function placeClosed(bar, sheet, header) {
+  sheet.style.transform = "";
+  bar.removeAttribute("data-pin");
+  const headerBottom = header
+    ? Math.max(0, header.getBoundingClientRect().bottom)
+    : 0;
+  bar.style.setProperty("--purchase-nav-hold", `${headerBottom}px`);
+  const marker = document.querySelector("[data-purchase-marker]");
+  const markerTop = marker ? marker.getBoundingClientRect().top : headerBottom;
+  if (markerTop < headerBottom - 0.5) {
+    if (bar.getAttribute("data-hold") !== "nav") {
+      bar.style.height = `${bar.offsetHeight}px`;
+    }
+    bar.setAttribute("data-hold", "nav");
+  } else {
+    bar.style.height = "";
+    bar.removeAttribute("data-hold");
+  }
+}
+
 function placeBar() {
   const scope = document.querySelector("[data-purchase-scope]");
   const bar = document.querySelector("[data-purchase-bar]");
@@ -109,11 +129,6 @@ function placeBar() {
   const footer = document.getElementById("footer");
   if (!scope || !bar || !sheet || !rail) return;
 
-  sheet.style.transform = "translateY(0px)";
-  const scopeBottom = scope.getBoundingClientRect().bottom;
-  const release = scopeBottom <= window.innerHeight - 12;
-  bar.setAttribute("data-pin", release ? "release" : "stick");
-
   const headerBottom = header
     ? Math.max(0, header.getBoundingClientRect().bottom)
     : 0;
@@ -121,24 +136,33 @@ function placeBar() {
   const open = bar.getAttribute("data-state") === "open" && panelOpen(details);
   let room = 0;
 
-  if (open) {
-    const railBox = rail.getBoundingClientRect();
-    const footerBottom = footer
-      ? footer.getBoundingClientRect().bottom
-      : window.innerHeight;
-    const above = Math.max(0, railBox.top - headerBottom);
-    const below = Math.max(
-      0,
-      Math.min(window.innerHeight, footerBottom) - railBox.bottom,
-    );
-    const dir = above >= below ? "up" : "down";
-    const chrome = (close ? close.offsetHeight : 36) + CLOSE_GAP;
-    room = Math.max(0, Math.floor((dir === "up" ? above : below) - chrome));
-    bar.setAttribute("data-expand", dir);
-    sizeDetails(details, bar, room);
-  } else {
+  if (!open) {
     clearDetails(details, bar);
+    placeClosed(bar, sheet, header);
+    return;
   }
+
+  bar.removeAttribute("data-hold");
+  bar.style.height = "";
+  sheet.style.transform = "translateY(0px)";
+  const scopeBottom = scope.getBoundingClientRect().bottom;
+  const release = scopeBottom <= window.innerHeight - 12;
+  bar.setAttribute("data-pin", release ? "release" : "stick");
+
+  const railBox = rail.getBoundingClientRect();
+  const footerBottom = footer
+    ? footer.getBoundingClientRect().bottom
+    : window.innerHeight;
+  const above = Math.max(0, railBox.top - headerBottom);
+  const below = Math.max(
+    0,
+    Math.min(window.innerHeight, footerBottom) - railBox.bottom,
+  );
+  const dir = above >= below ? "up" : "down";
+  const chrome = (close ? close.offsetHeight : 36) + CLOSE_GAP;
+  room = Math.max(0, Math.floor((dir === "up" ? above : below) - chrome));
+  bar.setAttribute("data-expand", dir);
+  sizeDetails(details, bar, room);
 
   const railTop = rail.getBoundingClientRect().top;
   const visualTop = Math.min(
@@ -158,7 +182,14 @@ function syncMetrics() {
   const header = document.getElementById("header");
   const rail = document.querySelector("[data-purchase-rail]");
   const barH = rail ? rail.offsetHeight : 0;
-  const offset = (header ? header.offsetHeight : 0) + barH + SECTION_SPACING;
+  const overlapRaw = getComputedStyle(document.documentElement)
+    .getPropertyValue("--header-top-overlap")
+    .trim();
+  const overlap = parseFloat(overlapRaw);
+  const headerClear = header
+    ? Math.max(0, header.offsetHeight - (Number.isNaN(overlap) ? 0 : overlap))
+    : 0;
+  const offset = headerClear + SECTION_SPACING;
   const root = document.documentElement;
   root.style.setProperty("--purchase-bar-h", `${barH}px`);
   root.style.setProperty("--purchase-scroll-offset", `${offset}px`);
@@ -255,7 +286,20 @@ export function initPurchaseBar() {
       placeBar();
     });
   };
-  window.addEventListener("scroll", schedule, { passive: true });
+  window.addEventListener(
+    "scroll",
+    () => {
+      const bar = document.querySelector("[data-purchase-bar]");
+      if (!bar || bar.getAttribute("data-state") === "open") {
+        schedule();
+        return;
+      }
+      const sheet = document.querySelector(".purchase-bar__sheet");
+      const header = document.getElementById("header");
+      placeClosed(bar, sheet, header);
+    },
+    { passive: true },
+  );
   window.addEventListener("resize", () => {
     syncMetrics();
     schedule();

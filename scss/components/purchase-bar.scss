@@ -11,19 +11,21 @@ $purchase-muted: $color-muted;
   position: relative;
 }
 
+[data-purchase-marker] {
+  height: 0;
+}
+
 .purchase-bar {
-  position: relative;
+  position: sticky;
+  bottom: 12px;
+  z-index: 1040;
   width: 100%;
-  height: var(--purchase-bar-h, 76px);
   pointer-events: none;
 }
 
 .purchase-bar__sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 12px;
-  z-index: 1040;
+  position: relative;
+  z-index: 1;
   width: min(1080px, calc(100% - 32px));
   margin-inline: auto;
   pointer-events: auto;
@@ -33,8 +35,35 @@ $purchase-muted: $color-muted;
   box-shadow: 0 12px 32px rgba($color-shadow, 0.14);
 }
 
-.purchase-bar[data-pin="release"] .purchase-bar__sheet {
+.purchase-bar[data-hold="nav"] {
+  position: relative;
+  bottom: auto;
+}
+
+.purchase-bar[data-hold="nav"] .purchase-bar__sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--purchase-nav-hold, 0px);
+  bottom: auto;
+}
+
+.purchase-bar[data-state="open"] {
+  position: relative;
+  bottom: auto;
+  height: var(--purchase-bar-h, 76px);
+}
+
+.purchase-bar[data-state="open"] .purchase-bar__sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+}
+
+.purchase-bar[data-state="open"][data-pin="release"] .purchase-bar__sheet {
   position: absolute;
+  top: auto;
   bottom: 0;
 }
 
