@@ -102,7 +102,7 @@ export function initNavScroll() {
     if (!Number.isNaN(offset) && offset > 0) return offset;
     const header = document.getElementById("header");
     const h = header ? header.offsetHeight : 0;
-    return h + 24;
+    return h;
   };
 
   const updateActiveNav = () => {
@@ -119,7 +119,7 @@ export function initNavScroll() {
       for (let i = 0; i < sections.length; i++) {
         const section = sections[i];
         const rect = section.getBoundingClientRect();
-        if (rect.top <= anchorPx) {
+        if (rect.top <= anchorPx + 1) {
           const key = section.getAttribute("data-section");
           activeHash = sectionToNavHash[key] || activeHash;
         }
@@ -147,10 +147,12 @@ export function initNavScroll() {
     event.preventDefault();
     history.pushState(null, null, href);
     scrollToHash(href, "auto");
+    onNavScroll();
   });
 
   window.addEventListener("popstate", () => {
     scrollToHash(location.hash, "auto");
+    onNavScroll();
   });
 
   window.addEventListener("load", () => {
@@ -159,9 +161,16 @@ export function initNavScroll() {
 
   if (location.hash) scrollToHash(location.hash, "auto");
 
-  const throttledUpdate = throttle(updateActiveNav, 50);
-  window.addEventListener("scroll", throttledUpdate, { passive: true });
-  window.addEventListener("resize", throttledUpdate);
+  let scrollFrame = 0;
+  const onNavScroll = () => {
+    if (scrollFrame) return;
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0;
+      updateActiveNav();
+    });
+  };
+  window.addEventListener("scroll", onNavScroll, { passive: true });
+  window.addEventListener("resize", onNavScroll);
   updateActiveNav();
 }
 

@@ -58,7 +58,13 @@ $purchase-muted: $color-muted;
   position: fixed;
   left: 0;
   right: 0;
+  top: auto;
   bottom: 12px;
+}
+
+.purchase-bar[data-state="open"][data-hold="nav"] .purchase-bar__sheet {
+  top: var(--purchase-nav-hold, 0px);
+  bottom: auto;
 }
 
 .purchase-bar[data-state="open"][data-pin="release"] .purchase-bar__sheet {

@@ -4,7 +4,6 @@ Author: FRONTLENS LLC
 License: For personal/business use only. Redistribution, resale, or sublicensing is strictly Copyright (c) 2026 FRONTLENS LLC. All rights reserved.
 */
 
-const SECTION_SPACING = 24;
 const CLOSE_GAP = 8;
 const SCROLL_KEYS = new Set([
   " ",
@@ -142,23 +141,35 @@ function placeBar() {
     return;
   }
 
-  bar.removeAttribute("data-hold");
-  bar.style.height = "";
-  sheet.style.transform = "translateY(0px)";
-  const scopeBottom = scope.getBoundingClientRect().bottom;
-  const release = scopeBottom <= window.innerHeight - 12;
-  bar.setAttribute("data-pin", release ? "release" : "stick");
+  const savedState = bar.getAttribute("data-state");
+  bar.setAttribute("data-state", "closed");
+  const closedRail = rail.getBoundingClientRect();
+  bar.setAttribute("data-state", savedState);
 
-  const railBox = rail.getBoundingClientRect();
   const footerBottom = footer
     ? footer.getBoundingClientRect().bottom
     : window.innerHeight;
-  const above = Math.max(0, railBox.top - headerBottom);
+  const above = Math.max(0, closedRail.top - headerBottom);
   const below = Math.max(
     0,
-    Math.min(window.innerHeight, footerBottom) - railBox.bottom,
+    Math.min(window.innerHeight, footerBottom) - closedRail.bottom,
   );
   const dir = above >= below ? "up" : "down";
+  const keepHold = bar.getAttribute("data-hold") === "nav" && dir === "down";
+  if (!keepHold) {
+    bar.removeAttribute("data-hold");
+    bar.style.height = "";
+  }
+
+  sheet.style.transform = "translateY(0px)";
+  if (keepHold) {
+    bar.removeAttribute("data-pin");
+  } else {
+    const scopeBottom = scope.getBoundingClientRect().bottom;
+    const release = scopeBottom <= window.innerHeight - 12;
+    bar.setAttribute("data-pin", release ? "release" : "stick");
+  }
+
   const chrome = (close ? close.offsetHeight : 36) + CLOSE_GAP;
   room = Math.max(0, Math.floor((dir === "up" ? above : below) - chrome));
   bar.setAttribute("data-expand", dir);
@@ -189,7 +200,7 @@ function syncMetrics() {
   const headerClear = header
     ? Math.max(0, header.offsetHeight - (Number.isNaN(overlap) ? 0 : overlap))
     : 0;
-  const offset = headerClear + SECTION_SPACING;
+  const offset = headerClear;
   const root = document.documentElement;
   root.style.setProperty("--purchase-bar-h", `${barH}px`);
   root.style.setProperty("--purchase-scroll-offset", `${offset}px`);
